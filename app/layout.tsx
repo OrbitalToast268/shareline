@@ -1,16 +1,15 @@
-import type { Metadata } from "next";
+// app/layout.tsx
+
 import "./globals.css";
+import type { ReactNode } from "react";
 
-export const metadata: Metadata = {
-  title: "ShareLine",
-  description: "A simple meeting queue for in-person shares. No accounts. No history. Just the line.",
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {/* Strong hint to browsers: LIGHT ONLY */}
         <meta name="color-scheme" content="light" />
+        <meta name="supported-color-schemes" content="light" />
         <meta name="theme-color" content="#ffffff" />
       </head>
       <body>{children}</body>

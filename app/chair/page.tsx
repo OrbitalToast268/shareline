@@ -25,6 +25,35 @@ function disambiguateQueue(queue: QueueEntry[]): QueueEntryDisplay[] {
   });
 }
 
+const COLORS = {
+  text: "#111",
+  muted: "#555",
+  muted2: "#777",
+  border: "#e9e9e9",
+  borderStrong: "#e2e2e2",
+  danger: "#b00020",
+  dangerBorder: "#ffd6d6",
+  warn: "#8a6d3b",
+  white: "#fff",
+  black: "#000",
+  disabledText: "#7a7a7a",
+
+  // subtle highlight for "Now Sharing"
+  highlightBg: "#f6f6f6",
+  highlightBorder: "#dcdcdc",
+};
+
+function baseButtonStyle(disabled: boolean): React.CSSProperties {
+  return {
+    borderRadius: 12,
+    fontWeight: 900,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.55 : 1,
+    WebkitTextSizeAdjust: "100%",
+    WebkitTapHighlightColor: "transparent",
+  };
+}
+
 export default function ChairPage() {
   const [code, setCode] = useState<string | null>(null);
   const [meeting, setMeeting] = useState<MeetingDoc | null>(null);
@@ -61,11 +90,12 @@ export default function ChairPage() {
 
   const isEnded = !!meeting?.ended;
 
-  const nextUpLabel = useMemo(() => {
-    return queueDisplay[0]?.labelDisplay ?? null;
-  }, [queueDisplay]);
+  const nextUpLabel = useMemo(() => queueDisplay[0]?.labelDisplay ?? null, [queueDisplay]);
 
   const controlsDisabled = busy || isEnded || isExpired;
+  const nextDisabled = controlsDisabled || queueDisplay.length === 0;
+
+  const hasActiveSharer = !!(nowSharingUid && nowSharingLabel && nowSharingLabel.trim().length > 0);
 
   async function onStart() {
     setError("");
@@ -139,33 +169,33 @@ export default function ChairPage() {
         display: "flex",
         flexDirection: "column",
         gap: 14,
+        color: COLORS.text,
+        background: COLORS.white,
       }}
     >
       <h1 style={{ fontSize: 30, marginTop: 8 }}>Chair</h1>
 
       {!code ? (
         <>
-          <p style={{ color: "#555", lineHeight: 1.4 }}>
-            Start a meeting to generate a 4-digit code. Members enter it to join
-            the line.
+          <p style={{ color: COLORS.muted, lineHeight: 1.4 }}>
+            Start a meeting to generate a 4-digit code. Members enter it to join the line.
           </p>
 
-          {error ? (
-            <div style={{ color: "#b00020", fontWeight: 700 }}>{error}</div>
-          ) : null}
+          {error ? <div style={{ color: COLORS.danger, fontWeight: 700 }}>{error}</div> : null}
 
           <button
             onClick={onStart}
             disabled={busy}
             style={{
+              ...baseButtonStyle(busy),
               padding: "16px 14px",
               borderRadius: 14,
               border: "none",
-              background: busy ? "#444" : "black",
-              color: "white",
+              background: busy ? "#222" : COLORS.black,
+              color: COLORS.white,
               fontSize: 18,
               fontWeight: 900,
-              cursor: busy ? "not-allowed" : "pointer",
+              boxShadow: busy ? "none" : "0 8px 18px rgba(0,0,0,0.12)",
             }}
           >
             {busy ? "Starting…" : "Start Meeting"}
@@ -175,12 +205,13 @@ export default function ChairPage() {
         <>
           <section
             style={{
-              border: "2px solid #eee",
+              border: `2px solid ${COLORS.border}`,
               borderRadius: 16,
               padding: 16,
+              background: COLORS.white,
             }}
           >
-            <div style={{ color: "#777", fontWeight: 800, letterSpacing: 0.5 }}>
+            <div style={{ color: COLORS.muted2, fontWeight: 800, letterSpacing: 0.5 }}>
               TODAY’S SHARELINE CODE
             </div>
 
@@ -205,7 +236,7 @@ export default function ChairPage() {
                 style={{
                   marginTop: 10,
                   fontWeight: 900,
-                  color: isEnded ? "#b00020" : "#8a6d3b",
+                  color: isEnded ? COLORS.danger : COLORS.warn,
                 }}
               >
                 {isEnded ? "Meeting ended." : "Meeting expired."}
@@ -213,9 +244,7 @@ export default function ChairPage() {
             ) : null}
 
             {error ? (
-              <div style={{ marginTop: 10, color: "#b00020", fontWeight: 800 }}>
-                {error}
-              </div>
+              <div style={{ marginTop: 10, color: COLORS.danger, fontWeight: 800 }}>{error}</div>
             ) : null}
 
             <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
@@ -223,14 +252,15 @@ export default function ChairPage() {
                 onClick={onToggleLock}
                 disabled={controlsDisabled}
                 style={{
+                  ...baseButtonStyle(controlsDisabled),
                   flex: 1,
                   padding: "12px 12px",
                   borderRadius: 12,
-                  border: "2px solid #ddd",
-                  background: meeting?.locked ? "#fff3cd" : "white",
-                  fontWeight: 900,
-                  cursor: controlsDisabled ? "not-allowed" : "pointer",
-                  opacity: controlsDisabled ? 0.6 : 1,
+                  border: `2px solid ${COLORS.borderStrong}`,
+                  background: meeting?.locked ? "#fff7df" : COLORS.white,
+                  color: COLORS.text,
+                  boxShadow: meeting?.locked ? "0 6px 14px rgba(0,0,0,0.08)" : "none",
+                  filter: "none",
                 }}
               >
                 {meeting?.locked ? "Locked" : "Lock (optional)"}
@@ -240,15 +270,13 @@ export default function ChairPage() {
                 onClick={onEnd}
                 disabled={busy}
                 style={{
+                  ...baseButtonStyle(busy),
                   flex: 1,
                   padding: "12px 12px",
                   borderRadius: 12,
-                  border: "2px solid #ffdddd",
-                  background: "white",
-                  color: "#b00020",
-                  fontWeight: 900,
-                  cursor: busy ? "not-allowed" : "pointer",
-                  opacity: busy ? 0.6 : 1,
+                  border: `2px solid ${COLORS.dangerBorder}`,
+                  background: COLORS.white,
+                  color: COLORS.danger,
                 }}
               >
                 End Meeting
@@ -256,18 +284,24 @@ export default function ChairPage() {
             </div>
           </section>
 
+          {/* Now Sharing (subtle highlight only when actively sharing) */}
           <section
             style={{
-              border: "2px solid #eee",
+              border: `2px solid ${hasActiveSharer ? COLORS.highlightBorder : COLORS.border}`,
               borderRadius: 16,
               padding: 14,
+              background: hasActiveSharer ? COLORS.highlightBg : COLORS.white,
+              boxShadow: hasActiveSharer ? "0 10px 20px rgba(0,0,0,0.06)" : "none",
+              transition: "background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
             }}
           >
-            <div style={{ color: "#777", fontWeight: 900 }}>NOW SHARING</div>
+            <div style={{ color: COLORS.muted2, fontWeight: 900 }}>NOW SHARING</div>
+
             <div style={{ fontSize: 22, fontWeight: 900, marginTop: 6 }}>
               {nowSharingLabel ? nowSharingLabel : "—"}
             </div>
-            <div style={{ color: "#777", marginTop: 4, fontSize: 14 }}>
+
+            <div style={{ color: COLORS.muted2, marginTop: 4, fontSize: 14 }}>
               Tap “Next” when it’s time to move to the next share.
             </div>
           </section>
@@ -278,20 +312,17 @@ export default function ChairPage() {
 
               <button
                 onClick={onNext}
-                disabled={controlsDisabled || queueDisplay.length === 0}
+                disabled={nextDisabled}
                 style={{
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "none",
-                  background:
-                    controlsDisabled || queueDisplay.length === 0 ? "#ddd" : "black",
-                  color:
-                    controlsDisabled || queueDisplay.length === 0 ? "#666" : "white",
-                  fontWeight: 900,
-                  cursor:
-                    controlsDisabled || queueDisplay.length === 0
-                      ? "not-allowed"
-                      : "pointer",
+                  ...baseButtonStyle(nextDisabled),
+                  padding: "10px 14px",
+                  borderRadius: 999,
+                  border: nextDisabled ? `2px solid ${COLORS.borderStrong}` : "2px solid #111",
+                  background: nextDisabled ? COLORS.white : COLORS.black,
+                  color: nextDisabled ? COLORS.disabledText : COLORS.white,
+                  boxShadow: nextDisabled ? "none" : "0 8px 18px rgba(0,0,0,0.12)",
+                  minWidth: 110,
+                  textAlign: "center",
                 }}
               >
                 {nextUpLabel ? `Next: ${nextUpLabel}` : "Next"}
@@ -300,22 +331,19 @@ export default function ChairPage() {
 
             <div
               style={{
-                border: "2px solid #eee",
+                border: `2px solid ${COLORS.border}`,
                 borderRadius: 14,
                 padding: 12,
                 marginTop: 10,
+                background: COLORS.white,
               }}
             >
               {isEnded ? (
-                <div style={{ color: "#b00020", fontWeight: 900 }}>
-                  This meeting has ended.
-                </div>
+                <div style={{ color: COLORS.danger, fontWeight: 900 }}>This meeting has ended.</div>
               ) : isExpired ? (
-                <div style={{ color: "#8a6d3b", fontWeight: 900 }}>
-                  This meeting has expired.
-                </div>
+                <div style={{ color: COLORS.warn, fontWeight: 900 }}>This meeting has expired.</div>
               ) : queueDisplay.length === 0 ? (
-                <div style={{ color: "#777" }}>No one in line yet.</div>
+                <div style={{ color: COLORS.muted2 }}>No one in line yet.</div>
               ) : (
                 <ol style={{ margin: 0, paddingLeft: 18 }}>
                   {queueDisplay.map((e) => (
@@ -336,7 +364,7 @@ export default function ChairPage() {
         </>
       )}
 
-      <a href="/" style={{ display: "inline-block", marginTop: 6 }}>
+      <a href="/" style={{ display: "inline-block", marginTop: 6, color: COLORS.text }}>
         ← Back
       </a>
     </main>
